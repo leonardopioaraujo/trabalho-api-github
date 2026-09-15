@@ -1,0 +1,297 @@
+import requests
+import json
+
+# ==================================================
+# TRABALHO - API DO GITHUB
+# ==================================================
+
+
+# ==================================================
+# PARTE 1 - EXPLORAR A PRÓPRIA CONTA
+# ==================================================
+
+usuario = "leonardopioaraujo"
+
+print("=" * 50)
+print("1. EXPLORANDO MINHA CONTA DO GITHUB")
+print("=" * 50)
+
+# URL para consultar o usuário
+url_usuario = f"https://api.github.com/users/{usuario}"
+
+resposta_usuario = requests.get(url_usuario)
+
+# Verifica se o usuário foi encontrado
+if resposta_usuario.status_code == 200:
+
+    dados_usuario = resposta_usuario.json()
+
+    print("\nINFORMAÇÕES DO USUÁRIO")
+    print("-" * 50)
+    print("Usuário:", dados_usuario["login"])
+    print("Nome:", dados_usuario["name"])
+    print("Quantidade de repositórios públicos:",
+          dados_usuario["public_repos"])
+    print("Seguidores:", dados_usuario["followers"])
+
+else:
+    print("\nUsuário não encontrado!")
+    print("Verifique se o username está correto.")
+    print("Status da requisição:", resposta_usuario.status_code)
+
+
+# ==================================================
+# LISTAR REPOSITÓRIOS PÚBLICOS
+# ==================================================
+
+print("\n" + "=" * 50)
+print("MEUS REPOSITÓRIOS PÚBLICOS")
+print("=" * 50)
+
+url_repos = f"https://api.github.com/users/{usuario}/repos?per_page=100"
+
+resposta_repos = requests.get(url_repos)
+
+total_estrelas_usuario = 0
+
+if resposta_repos.status_code == 200:
+
+    repositorios_usuario = resposta_repos.json()
+
+    if len(repositorios_usuario) == 0:
+        print("\nNenhum repositório público encontrado.")
+
+    else:
+        for repo in repositorios_usuario:
+
+            nome = repo["name"]
+            estrelas = repo["stargazers_count"]
+
+            print(f"\nRepositório: {nome}")
+            print(f"Estrelas: {estrelas}")
+
+            # Soma as estrelas
+            total_estrelas_usuario += estrelas
+
+        print("\n" + "-" * 50)
+        print("Total de repositórios encontrados:",
+              len(repositorios_usuario))
+        print("TOTAL DE ESTRELAS ACUMULADAS:",
+              total_estrelas_usuario)
+
+else:
+    print("Erro ao buscar os repositórios.")
+
+
+# ==================================================
+# PARTE 2 - ANALISAR UM PROJETO OPEN-SOURCE
+# ==================================================
+
+repositorio_famoso = "numpy/numpy"
+
+print("\n" + "=" * 50)
+print("2. ANÁLISE DE PROJETO OPEN-SOURCE")
+print("=" * 50)
+
+url_projeto = f"https://api.github.com/repos/{repositorio_famoso}"
+
+resposta_projeto = requests.get(url_projeto)
+
+if resposta_projeto.status_code == 200:
+
+    dados_projeto = resposta_projeto.json()
+
+    print("\nPROJETO:", dados_projeto["full_name"])
+    print("Descrição:", dados_projeto["description"])
+    print("Estrelas:", dados_projeto["stargazers_count"])
+    print("Forks:", dados_projeto["forks_count"])
+    print("Issues abertas:", dados_projeto["open_issues_count"])
+
+else:
+    print("Erro ao buscar o projeto open-source.")
+
+
+# ==================================================
+# LINGUAGENS UTILIZADAS NO PROJETO
+# ==================================================
+
+print("\nLINGUAGENS UTILIZADAS")
+
+url_linguagens = f"https://api.github.com/repos/{repositorio_famoso}/languages"
+
+resposta_linguagens = requests.get(url_linguagens)
+
+if resposta_linguagens.status_code == 200:
+
+    linguagens_projeto = resposta_linguagens.json()
+
+    for linguagem, quantidade in linguagens_projeto.items():
+        print(f"- {linguagem}: {quantidade} bytes")
+
+else:
+    print("Erro ao buscar as linguagens.")
+
+
+# ==================================================
+# PARTE 3 - CRIAR UM DATASET PERSONALIZADO
+# ==================================================
+
+print("\n" + "=" * 50)
+print("3. CRIANDO DATASET PERSONALIZADO")
+print("=" * 50)
+
+
+# Lista de repositórios que serão analisados
+repositorios_dataset = [
+    "numpy/numpy",
+    "pallets/flask",
+    "django/django",
+    "tensorflow/tensorflow"
+]
+
+
+# Lista onde os dados serão armazenados
+dataset = []
+
+
+# Percorre todos os repositórios
+for repositorio in repositorios_dataset:
+
+    print(f"\nColetando dados de: {repositorio}")
+
+    # Busca informações gerais
+    url = f"https://api.github.com/repos/{repositorio}"
+
+    resposta = requests.get(url)
+
+    if resposta.status_code != 200:
+        print("Erro ao buscar este repositório.")
+        continue
+
+    dados = resposta.json()
+
+
+    # Busca as linguagens
+    url_linguagens_dataset = (
+        f"https://api.github.com/repos/{repositorio}/languages"
+    )
+
+    resposta_linguagens_dataset = requests.get(
+        url_linguagens_dataset
+    )
+
+    if resposta_linguagens_dataset.status_code == 200:
+        linguagens = resposta_linguagens_dataset.json()
+        lista_linguagens = list(linguagens.keys())
+    else:
+        lista_linguagens = []
+
+
+    # Cria um objeto com os dados do repositório
+    projeto = {
+        "nome": dados["name"],
+        "repositorio": dados["full_name"],
+        "descricao": dados["description"],
+        "url": dados["html_url"],
+        "estrelas": dados["stargazers_count"],
+        "forks": dados["forks_count"],
+        "issues_abertas": dados["open_issues_count"],
+        "linguagem_principal": dados["language"],
+        "linguagens": lista_linguagens
+    }
+
+
+    # Adiciona o projeto ao dataset
+    dataset.append(projeto)
+
+
+# ==================================================
+# SALVAR O DATASET EM JSON
+# ==================================================
+
+nome_arquivo = "dataset_github.json"
+
+with open(nome_arquivo, "w", encoding="utf-8") as arquivo:
+
+    json.dump(
+        dataset,
+        arquivo,
+        indent=4,
+        ensure_ascii=False
+    )
+
+
+print("\nArquivo JSON criado com sucesso!")
+print("Nome do arquivo:", nome_arquivo)
+
+
+# ==================================================
+# GERAR ESTATÍSTICAS BÁSICAS
+# ==================================================
+
+print("\n" + "=" * 50)
+print("ESTATÍSTICAS DO DATASET")
+print("=" * 50)
+
+
+total_repositorios = len(dataset)
+
+
+# Soma todas as estrelas
+total_estrelas = sum(
+    projeto["estrelas"]
+    for projeto in dataset
+)
+
+
+# Soma todos os forks
+total_forks = sum(
+    projeto["forks"]
+    for projeto in dataset
+)
+
+
+# Soma todas as issues abertas
+total_issues = sum(
+    projeto["issues_abertas"]
+    for projeto in dataset
+)
+
+
+# Calcula a média de estrelas
+if total_repositorios > 0:
+    media_estrelas = total_estrelas / total_repositorios
+else:
+    media_estrelas = 0
+
+
+print("\nQuantidade de repositórios:", total_repositorios)
+print("Total de estrelas:", total_estrelas)
+print("Total de forks:", total_forks)
+print("Total de issues abertas:", total_issues)
+print("Média de estrelas:", round(media_estrelas, 2))
+
+
+# ==================================================
+# MOSTRAR OS DADOS DO DATASET
+# ==================================================
+
+print("\n" + "=" * 50)
+print("RESUMO DOS REPOSITÓRIOS DO DATASET")
+print("=" * 50)
+
+for projeto in dataset:
+
+    print(f"\nNome: {projeto['nome']}")
+    print(f"Estrelas: {projeto['estrelas']}")
+    print(f"Forks: {projeto['forks']}")
+    print(f"Issues abertas: {projeto['issues_abertas']}")
+    print(
+        "Linguagens:",
+        ", ".join(projeto["linguagens"])
+    )
+
+
+print("\n" + "=" * 50)
+print("TRABALHO FINALIZADO COM SUCESSO!")
+print("=" * 50)
